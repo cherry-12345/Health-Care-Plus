@@ -38,6 +38,12 @@ export async function POST(req: Request) {
       count: hospitals.length 
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Hospital search error:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: error.message || 'Failed to search hospitals',
+      hospitals: [],
+      count: 0
+    }, { status: 500 });
   }
 }

@@ -13,8 +13,13 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Dashboard API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch dashboard data' },
+      { 
+        success: false, 
+        error: errorMessage,
+        data: null 
+      },
       { status: 500 }
     );
   }

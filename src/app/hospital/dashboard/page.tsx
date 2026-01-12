@@ -61,7 +61,7 @@ export default function HospitalDashboardPage() {
     enabled: isAuthenticated && user?.role === 'hospital',
   });
 
-  const hospital = hospitalData?.hospitals?.[0];
+  const hospital = hospitalData?.hospitals?.[0] || null;
 
   // Initialize forms when hospital data loads
   useEffect(() => {

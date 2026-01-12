@@ -82,6 +82,13 @@ export async function GET() {
     });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Emergency alerts error:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: error.message || 'Failed to fetch emergency alerts',
+      emergencyAlerts: [],
+      totalAlerts: 0,
+      systemStatus: "UNKNOWN"
+    }, { status: 500 });
   }
 }

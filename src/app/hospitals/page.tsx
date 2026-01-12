@@ -24,7 +24,7 @@ export default function HospitalsPage() {
   };
 
   const hospitals: Hospital[] = data?.data?.hospitals || [];
-  const pagination = data?.data?.pagination;
+  const pagination = data?.data?.pagination || { total: 0, totalPages: 0, page: 1, limit: 20 };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -99,7 +99,7 @@ export default function HospitalsPage() {
               </div>
 
               {/* Pagination */}
-              {pagination && pagination.totalPages > 1 && (
+              {pagination && pagination.totalPages && pagination.totalPages > 1 && (
                 <div className="flex justify-center gap-2 mt-8">
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     const page = i + 1;

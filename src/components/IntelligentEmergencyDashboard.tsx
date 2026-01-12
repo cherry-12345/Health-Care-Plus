@@ -146,7 +146,7 @@ export default function IntelligentEmergencyDashboard() {
                       ETA: {hospital.estimatedResponseTime?.toFixed(0)} min
                     </p>
                     <p className="text-sm">
-                      Available {emergencyData.requiredBedType}: {hospital.beds?.[emergencyData.requiredBedType]?.available || 0}
+                      Available {emergencyData.requiredBedType}: {hospital.beds?.[emergencyData.requiredBedType]?.available ?? 0}
                     </p>
                   </div>
                   <div className="text-right">
