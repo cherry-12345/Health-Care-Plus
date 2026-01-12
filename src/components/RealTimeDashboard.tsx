@@ -1,62 +1,75 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface BedStats {
+  totalHospitals?: number;
+  totalGeneralBeds?: number;
+  availableGeneralBeds?: number;
+  totalICUBeds?: number;
+  availableICUBeds?: number;
+  totalOxygenBeds?: number;
+  availableOxygenBeds?: number;
+  totalVentilatorBeds?: number;
+  availableVentilatorBeds?: number;
+}
+
+interface BloodStat {
+  _id: string;
+  totalUnits: number;
+  hospitalCount: number;
+}
+
+interface StatusCount {
+  _id: string;
+  count: number;
+}
 
 interface DashboardData {
   hospitals: {
-    bedStats: {
-      totalHospitals: number;
-      totalGeneralBeds: number;
-      availableGeneralBeds: number;
-      totalICUBeds: number;
-      availableICUBeds: number;
-      totalOxygenBeds: number;
-      availableOxygenBeds: number;
-      totalVentilatorBeds: number;
-      availableVentilatorBeds: number;
-    };
-    bloodStats: Array<{
-      _id: string;
-      totalUnits: number;
-      hospitalCount: number;
-    }>;
-    lastUpdated: string;
+    bedStats: BedStats;
+    bloodStats: BloodStat[];
+    lastUpdated: string | Date;
   };
   appointments: {
-    byStatus: Array<{
-      _id: string;
-      count: number;
-    }>;
+    byStatus: StatusCount[];
     todayCount: number;
   };
-  users: Array<{
-    _id: string;
-    count: number;
-  }>;
-  timestamp: string;
+  users: StatusCount[];
+  timestamp: string | Date;
 }
 
 export default function RealTimeDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
+      setError(null);
       const response = await fetch('/api/realtime/dashboard');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
         setData(result.data);
         setLastUpdate(new Date());
+      } else {
+        throw new Error(result.error || 'Failed to fetch dashboard data');
       }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -65,7 +78,7 @@ export default function RealTimeDashboard() {
     const interval = setInterval(fetchDashboardData, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchDashboardData]);
 
   if (loading) {
     return (
@@ -78,16 +91,40 @@ export default function RealTimeDashboard() {
     );
   }
 
-  if (!data) {
+  if (error || !data) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-600">Failed to load dashboard data</p>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error || 'Failed to load dashboard data'}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              fetchDashboardData();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
-  const bedStats = data.hospitals.bedStats;
-  const bloodStats = data.hospitals.bloodStats;
+  const bedStats = data.hospitals?.bedStats || {
+    totalHospitals: 0,
+    totalGeneralBeds: 0,
+    availableGeneralBeds: 0,
+    totalICUBeds: 0,
+    availableICUBeds: 0,
+    totalOxygenBeds: 0,
+    availableOxygenBeds: 0,
+    totalVentilatorBeds: 0,
+    availableVentilatorBeds: 0,
+  };
+  const bloodStats = data.hospitals?.bloodStats || [];
+  const appointmentsByStatus = data.appointments?.byStatus || [];
+  const todayCount = data.appointments?.todayCount || 0;
+  const users = data.users || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -200,13 +237,15 @@ export default function RealTimeDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {bloodStats.map((blood) => (
+            {bloodStats.length > 0 ? bloodStats.map((blood) => (
               <div key={blood._id} className="text-center">
                 <div className="text-lg font-bold text-red-600">{blood.totalUnits}</div>
                 <div className="text-sm text-gray-600">{blood._id}</div>
                 <div className="text-xs text-gray-500">{blood.hospitalCount} hospitals</div>
               </div>
-            ))}
+            )) : (
+              <div className="col-span-full text-center text-gray-500">No blood bank data available</div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -219,7 +258,7 @@ export default function RealTimeDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600">
-              {data.appointments.todayCount}
+              {todayCount}
             </div>
             <p className="text-sm text-gray-500">appointments scheduled for today</p>
           </CardContent>
@@ -231,12 +270,14 @@ export default function RealTimeDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {data.appointments.byStatus.map((status) => (
+              {appointmentsByStatus.length > 0 ? appointmentsByStatus.map((status) => (
                 <div key={status._id} className="flex justify-between items-center">
                   <span className="capitalize text-sm text-gray-600">{status._id}</span>
                   <span className="font-semibold">{status.count}</span>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center text-gray-500">No appointment data available</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -249,12 +290,14 @@ export default function RealTimeDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
-            {data.users.map((user) => (
+            {users.length > 0 ? users.map((user) => (
               <div key={user._id} className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{user.count}</div>
                 <div className="text-sm text-gray-600 capitalize">{user._id}s</div>
               </div>
-            ))}
+            )) : (
+              <div className="col-span-full text-center text-gray-500">No user data available</div>
+            )}
           </div>
         </CardContent>
       </Card>

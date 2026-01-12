@@ -87,8 +87,7 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-// Essential indexes only
-userSchema.index({ email: 1 }, { unique: true });
+// Essential indexes only (email unique index already created via schema 'unique: true')
 userSchema.index({ role: 1 });
 
 // Hash password before saving
