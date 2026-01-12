@@ -102,7 +102,6 @@ const hospitalSchema = new Schema(
     registrationNumber: {
       type: String,
       required: [true, 'Registration number is required'],
-      unique: true,
     },
     type: {
       type: String,
@@ -187,6 +186,7 @@ const hospitalSchema = new Schema(
 );
 
 // Indexes for efficient queries
+hospitalSchema.index({ registrationNumber: 1 }, { unique: true });
 hospitalSchema.index({ location: '2dsphere' });
 hospitalSchema.index({ 'address.city': 1 });
 hospitalSchema.index({ 'address.state': 1 });
